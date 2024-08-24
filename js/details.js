@@ -1,12 +1,20 @@
 let initialPosition = null; // Store the initial position of the card
 
+
 function enterDetail(index) {
     const detailView = document.getElementById('detail-view');
     const detailCard = detailView.querySelector('.detail-card');
-    const card = document.querySelectorAll('.cover')[index]; // Get the clicked card
-    const cardRect = card.getBoundingClientRect(); // Get the card's position in the gallery
-    
-    // Store the initial position
+    const card = document.querySelectorAll('.cover')[index];
+    const cardRect = card.getBoundingClientRect();
+
+    // Bersihkan konten detail view sebelumnya
+    const previousInfo = detailView.querySelector('.detail-info');
+    if (previousInfo) previousInfo.remove();
+
+    let previousContainer = detailView.querySelector('.detail-content');
+    if (previousContainer) previousContainer.remove(); // Pastikan untuk menghapus kontainer sebelumnya
+
+    // Simpan posisi awal kartu
     initialPosition = {
         top: cardRect.top + window.scrollY,
         left: cardRect.left + window.scrollX,
@@ -14,10 +22,10 @@ function enterDetail(index) {
         height: cardRect.height,
     };
 
-    // Reset detail card content
+    // Kosongkan konten kartu detail sebelumnya
     detailCard.innerHTML = '';
 
-    // Create container for layers and effects
+    // Buat lapisan untuk efek paralaks
     const containerHTML = document.createElement('div');
     const shineHTML = document.createElement('div');
     const shadowHTML = document.createElement('div');
@@ -31,49 +39,118 @@ function enterDetail(index) {
     glareHTML.className = 'atvImg-glare';
     layersHTML.className = 'atvImg-layers';
 
-    // Create layered images based on card data
-    cardData[index].frontImages.forEach((imgSrc, i) => {
+    cardData[index].frontImages.forEach((imgSrc) => {
         const layer = document.createElement('div');
         layer.className = 'atvImg-rendered-layer';
-        layer.setAttribute('data-layer', i);
         layer.style.backgroundImage = `url(${imgSrc})`;
         layersHTML.appendChild(layer);
         layers.push(layer);
     });
 
-    // Assemble the detail card
     containerHTML.appendChild(shadowHTML);
     containerHTML.appendChild(layersHTML);
     containerHTML.appendChild(shineHTML);
     containerHTML.appendChild(glareHTML);
     detailCard.appendChild(containerHTML);
 
-    // Set initial position and size of the detail card
+    // Buat kontainer utama untuk kartu dan informasi
+    const detailContainer = document.createElement('div');
+    detailContainer.className = 'detail-content';
+
+    // Masukkan kartu dan blank container ke dalam kontainer utama
+    const blankContainer = document.createElement('div');
+    blankContainer.className = 'blank-container';
+
+    detailContainer.appendChild(detailCard);
+    detailContainer.appendChild(blankContainer);
+
+    // Buat deskripsi dan informasi detail kartu berdasarkan data dari data.js
+    const detailInfoHTML = document.createElement('div');
+    detailInfoHTML.className = 'detail-info';
+    detailInfoHTML.innerHTML = `
+        <div class="detail-section">
+            <p>Weapon Name</p>
+            <h3>${cardData[index].name}</h3>
+        </div>
+        <hr class="solid">
+        <div class="detail-section">
+            <p>Description</p>
+            <h3>${cardData[index].description}</h3>
+        </div>
+        <hr class="solid">
+        <div class="detail-section">
+            <p>Element</p>
+            <h3>${cardData[index].element}</h3>
+        </div>
+        <hr class="solid">
+        <div class="detail-section">
+            <p>Series</p>
+            <h3>${cardData[index].series}</h3>
+        </div>
+        <hr class="solid">
+        <div class="detail-section">
+            <p>Price</p>
+            <h3>USD 0.56 / ${cardData[index].price}</h3>
+        </div>
+    `;
+
+    // Masukkan informasi kartu ke dalam kontainer
+    detailContainer.appendChild(detailInfoHTML);
+
+    // Masukkan kontainer ke dalam detail view
+    detailView.appendChild(detailContainer);
+
+    // Reset posisi dan ukuran kartu detail
     detailCard.style.position = 'absolute';
     detailCard.style.top = `${initialPosition.top}px`;
     detailCard.style.left = `${initialPosition.left}px`;
     detailCard.style.width = `${initialPosition.width}px`;
     detailCard.style.height = `${initialPosition.height}px`;
 
-    // Display the detail view with animation
+    // Pastikan tampilan detail aktif
     detailView.classList.add('active');
+    detailView.style.display = 'flex'; 
 
+    // Animasi menuju posisi tengah layar
     setTimeout(() => {
         detailCard.style.transition = 'all 0.5s ease';
         detailCard.style.top = '50%';
-        detailCard.style.left = '50%';
+
+        if (window.innerWidth <= 768) {
+            detailCard.style.left = '50%';
+            detailContainer.style.marginLeft = '0';
+        } else {
+            detailCard.style.left = '30%';
+            detailContainer.style.marginLeft = '30%';
+        }
         detailCard.style.transform = 'translate(-50%, -50%)';
-        detailCard.style.width = '320px'; // Default card size
-        detailCard.style.height = '420px'; // Default card size
+        detailCard.style.width = '320px';
+        detailCard.style.height = '420px';
     }, 10);
 
-    // Apply the parallax effect after the card is displayed
+    // Terapkan efek paralaks setelah kartu tampil
     applyParallaxEffect(detailCard, layers, shineHTML, glareHTML, shadowHTML);
+
+    // Tambahkan event listener resize untuk menyesuaikan posisi kartu secara realtime
+    window.addEventListener('resize', handleResize);
+
+    function handleResize() {
+        if (window.innerWidth <= 768) {
+            detailCard.style.left = '50%';
+            detailContainer.style.marginLeft = '0';
+            detailCard.style.transform = 'translate(-50%, -50%)';
+        } else {
+            detailCard.style.left = '30%';
+            detailContainer.style.marginLeft = '30%';
+            detailCard.style.transform = 'translate(-50%, -50%)';
+        }
+    }
 }
 
 function closeDetail() {
     const detailView = document.getElementById('detail-view');
     const detailCard = detailView.querySelector('.detail-card');
+    const descriptionHTML = detailView.querySelector('.detail-description');
 
     // Animate the card back to its initial position
     detailCard.style.transition = 'all 0.5s ease';
@@ -87,6 +164,11 @@ function closeDetail() {
     setTimeout(() => {
         detailView.classList.remove('active');
         detailCard.style.transition = 'none';
+        
+        // Cek apakah descriptionHTML ada sebelum melakukan .remove()
+        if (descriptionHTML) {
+            descriptionHTML.remove(); // Remove the description content when closing
+        }
     }, 500);
 }
 
